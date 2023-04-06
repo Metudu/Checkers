@@ -1,12 +1,24 @@
-import pygame
+import pygame,socket,threading,pickle
 from Board import Board
 pygame.init()
 
 # General Variables
-run = True
+IP_ADDRESS = '3.67.195.65'
+PORT = 5000
+
+client = socket.socket()
+client.connect((IP_ADDRESS, PORT))
+
+def get_turn():
+    while True:
+        global your_turn
+        print(your_turn)
+        your_turn = pickle.loads(client.recv(512))
+
 board = Board(60, 60, 60, 60)
 clicked_piece = 0
-your_turn = True
+your_colour, your_turn = pickle.loads(client.recv(1024))
+run = pickle.loads(client.recv(512))
 
 # Window 
 WIDTH = 600
@@ -20,6 +32,8 @@ BACKGROUND = (200,200,200)
 WINDOW.fill(BACKGROUND)
 board.draw_board(WINDOW)
 board.draw_pieces(WINDOW)
+turn_thread = threading.Thread(target=get_turn)
+turn_thread.start()
 
 while run:
     pygame.display.update()
@@ -43,11 +57,13 @@ while run:
                         board.move((row,column),clicked_piece)
                         clicked_piece.possible_moves.clear()
                         your_turn = False
+                        client.send(pickle.dumps(your_turn))
                     board.draw(WINDOW)
                     clicked_piece = 0
 
         if event.type == pygame.QUIT:
             run = False
+            turn_thread._stop()
             break
 
 pygame.quit()
