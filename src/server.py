@@ -1,7 +1,7 @@
 import socket,threading,pickle
 
-IP_ADDRESS = '0.0.0.0'
-PORT = 9999
+IP_ADDRESS = 'localhost'
+PORT = 5000
 
 server = socket.socket()
 server.bind((IP_ADDRESS, PORT))
@@ -19,6 +19,15 @@ def send_turns():
                 elif client == connections[1]:
                     connections[0].send(pickle.dumps(True))
 
+def send_board():
+    while True:
+        for client in connections:
+            if isinstance((temp := pickle.loads(client.recv(2048))),list):
+                if client == connections[0]:
+                    connections[1].send(pickle.dumps(temp))
+                elif client == connections[1]:
+                    connections[0].send(pickle.dumps(temp))
+
 def broadcast(entity):
     for client in connections:
         client.send(pickle.dumps(entity))
@@ -35,7 +44,8 @@ def handle():
         connections.append(client)
 
     send_turn_thread = threading.Thread(target=send_turns)
+    send_board_thread = threading.Thread(target=send_board)
     send_turn_thread.start()
+    send_board_thread.start()
 
 handle()
-
